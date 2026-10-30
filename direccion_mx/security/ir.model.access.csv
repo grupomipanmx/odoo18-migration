@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ciudad_user,ciudad user,model_res_country_state_ciudad,base.group_user,1,0,0,0
+access_municipio_user,municipio user,model_res_country_state_municipio,base.group_user,1,0,0,0
+access_colonia_user,colonia user,model_res_country_state_municipio_colonia,base.group_user,1,0,0,0
+access_ciudad_admin,ciudad admin,model_res_country_state_ciudad,base.group_system,1,1,1,1
+access_municipio_admin,municipio admin,model_res_country_state_municipio,base.group_system,1,1,1,1
+access_colonia_admin,colonia admin,model_res_country_state_municipio_colonia,base.group_system,1,1,1,1
