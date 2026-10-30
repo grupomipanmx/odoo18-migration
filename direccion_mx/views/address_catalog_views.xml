@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ciudad_list" model="ir.ui.view">
+        <field name="name">res.country.state.ciudad.list</field><field name="model">res.country.state.ciudad</field>
+        <field name="arch" type="xml"><list string="Ciudades"><field name="name"/><field name="state_id"/><field name="clave_sat"/></list></field>
+    </record>
+    <record id="view_ciudad_form" model="ir.ui.view">
+        <field name="name">res.country.state.ciudad.form</field><field name="model">res.country.state.ciudad</field>
+        <field name="arch" type="xml"><form string="Ciudad"><sheet><group><field name="name"/><field name="state_id"/><field name="clave_sat"/></group><notebook><page string="Municipios"><field name="municipio_ids"><list editable="bottom"><field name="name"/><field name="state_id"/><field name="clave_sat"/></list></field></page></notebook></sheet></form></field>
+    </record>
+    <record id="view_municipio_list" model="ir.ui.view">
+        <field name="name">res.country.state.municipio.list</field><field name="model">res.country.state.municipio</field>
+        <field name="arch" type="xml"><list string="Municipios"><field name="name"/><field name="ciudad_id"/><field name="state_id"/><field name="clave_sat"/></list></field>
+    </record>
+    <record id="view_municipio_form" model="ir.ui.view">
+        <field name="name">res.country.state.municipio.form</field><field name="model">res.country.state.municipio</field>
+        <field name="arch" type="xml"><form string="Municipio"><sheet><group><field name="name"/><field name="ciudad_id"/><field name="state_id"/><field name="clave_sat"/></group></sheet></form></field>
+    </record>
+    <record id="view_colonia_list" model="ir.ui.view">
+        <field name="name">res.country.state.municipio.colonia.list</field><field name="model">res.country.state.municipio.colonia</field>
+        <field name="arch" type="xml"><list string="Colonias"><field name="name"/><field name="cp"/><field name="municipio_id"/><field name="clave_sat"/></list></field>
+    </record>
+    <record id="view_colonia_form" model="ir.ui.view">
+        <field name="name">res.country.state.municipio.colonia.form</field><field name="model">res.country.state.municipio.colonia</field>
+        <field name="arch" type="xml"><form string="Colonia"><sheet><group><field name="name"/><field name="cp"/><field name="municipio_id"/><field name="clave_sat"/></group></sheet></form></field>
+    </record>
+    <record id="action_ciudad" model="ir.actions.act_window"><field name="name">Ciudades</field><field name="res_model">res.country.state.ciudad</field><field name="view_mode">list,form</field></record>
+    <record id="action_municipio" model="ir.actions.act_window"><field name="name">Municipios</field><field name="res_model">res.country.state.municipio</field><field name="view_mode">list,form</field></record>
+    <record id="action_colonia" model="ir.actions.act_window"><field name="name">Colonias</field><field name="res_model">res.country.state.municipio.colonia</field><field name="view_mode">list,form</field></record>
+    <menuitem id="menu_address_catalog_root" name="Catálogos de dirección" parent="contacts.menu_contacts" sequence="90" groups="base.group_system"/>
+    <menuitem id="menu_address_city" name="Ciudades" parent="menu_address_catalog_root" action="action_ciudad" sequence="10"/>
+    <menuitem id="menu_address_municipality" name="Municipios" parent="menu_address_catalog_root" action="action_municipio" sequence="20"/>
+    <menuitem id="menu_address_colony" name="Colonias" parent="menu_address_catalog_root" action="action_colonia" sequence="30"/>
+</odoo>
