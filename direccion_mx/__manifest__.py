@@ -1,7 +1,7 @@
 {
     "name": "Direcciones de México - Grupo Mi Pan",
     "summary": "Catálogos mexicanos de ciudad, municipio y colonia",
-    "version": "18.0.2.0.0",
+    "version": "18.0.2.1.0",
     "category": "Localization",
     "author": "Grupo Mi Pan",
     "license": "LGPL-3",

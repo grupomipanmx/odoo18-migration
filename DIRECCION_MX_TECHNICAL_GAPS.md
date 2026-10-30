@@ -1,56 +1,59 @@
-# Revisión técnica de direccion_mx y direccion_mx_gmp
+# Direcciones mexicanas — implementación y conservación
 
-Fecha: 2026-10-30  
-Objetivo: preservar catálogos mexicanos y relaciones de contactos al pasar de Odoo 14 a Odoo 18.
+Fecha: 2026-10-30. Versión implementada: **18.0.2.1.0**. Código publicado en codex/odoo18-compatibility. **No instalado ni actualizado en Odoo; conservación de datos reales todavía no demostrada.**
 
-## Fuentes examinadas
-- ZIP aportado: carpeta `direccion_mx_gmp`.
-- Repositorio original público: `jeffrepo/direccion_mx`, rama `master`.
-- No se consultó ni modificó la base de datos productiva.
+## Brechas corregidas en código
 
-## Diferencias que impiden aprobar el módulo actual
+| Elemento | Implementación |
+|---|---|
+| CP | Modelo res.country.state.cp y tabla explícita res_country_state_cp. name Char tamaño 128, state_id, ciudad_id y municipio_id opcionales, mismos destinos que legado. Sin importación, índices nuevos, restricciones nuevas ni recreación de tabla |
+| city | Char almacenado/editable estándar, sin related/compute/inverse. Compatible con texto libre y contactos sin catálogos mexicanos |
+| l10n_mx_edi_colony | Char almacenado/editable con el mismo nombre, sin dependencia CFDI. No se descarta texto fiscal original |
+| Alta/edición por API | create multi y write completan únicamente valores omitidos al seleccionar explícitamente ciudad/municipio/colonia. El texto explícito, incluso vacío, prevalece |
+| Coherencia | Nuevas selecciones contradictorias producen ValidationError antes de reemplazar relaciones. No se normalizan masivamente contactos históricos |
+| Contactos hijos | _address_fields incorpora relaciones y colonia fiscal para que el mecanismo estándar sincronice dirección y vínculos juntos |
+| Seguridad CP | Internos lectura; sistema CRUD, igual a otros catálogos. ACL aditivas: comprobar permisos heredados en la copia real |
+| Búsqueda | Se conserva la corrección _search_display_name de la entrega anterior |
 
-1. **Nombre técnico distinto.** El módulo original se llama `direccion_mx`; el port inicial se llama `direccion_mx_gmp`. Los nombres de modelo coincidentes no hacen que Odoo transfiera automáticamente los metadatos del módulo original. No instalar ambos módulos con los mismos modelos activos.
-2. **Vistas ausentes.** El manifiesto GMP declara `data: []`; no carga formularios, listas, menús ni vistas de contacto. Por tanto, aunque los modelos se registraran, no hay interfaz funcional incluida en este esqueleto.
-3. **Seguridad ausente.** No se carga ningún `ir.model.access.csv`. Los modelos nuevos requieren permisos explícitos y mínimos.
-4. **Campo `city` cambió de naturaleza.** El original define `city` como campo relacionado con `ciudad_id.name`; el port inicial lo trata como campo estándar y lo asigna por onchange. Esto puede cambiar almacenamiento, escritura y consistencia de datos.
-5. **Campo SAT de colonia ausente.** El original expone `l10n_mx_edi_colony` como related a `colonia_id.name`; el port inicial no declara ese campo. Revisar integraciones y vistas que lo consuman antes de decidir si se conserva.
-6. **Métodos heredados de dirección cambiaron.** El original modifica `_fields_view_get_address` para sustituir los campos de ciudad; el port no incluye una adaptación equivalente. La API del método también debe validarse en Odoo 18, no copiarse sin comprobar.
-7. **Código postal/modelo CP.** El modelo `res.country.state.cp` debe compararse campo por campo con el esquema existente; la clase nueva añade `_rec_name`, índices y relaciones que no se deben aplicar a ciegas sobre una tabla poblada.
-8. **Onchanges no son equivalentes.** El original tiene lógica de municipio/ciudad y respuestas onchange antiguas; el port asigna campos directamente. Hay que definir reglas funcionales correctas y evitar sobrescribir país/estado/ciudad de forma inesperada.
-9. **Dependencias del manifiesto.** El original depende de `base_address_city` y `l10n_mx_edi`; el port sólo depende de `base` y `contacts`. CFDI queda fuera del alcance funcional actual, pero hay que detectar referencias residuales al campo de colonia SAT y no eliminar columnas/campos que aún tengan datos o dependencias.
-10. **Carga de datos peligrosa.** El wizard original `post_install` importa CSV, realiza commits manuales y usa APIs obsoletas. No debe ejecutarse en el proceso de migración. El wizard de carga de direcciones también usa APIs antiguas. No reimportar CSV ni recrear IDs.
+Un cambio de teléfono o de otro dato ajeno a los selectores no reescribe las direcciones. Limpiar todos los selectores conserva el texto guardado; renombrar un catálogo tampoco reescribe las etiquetas históricas de los contactos. Elegir una nueva colonia por formulario sí actualiza las etiquetas mediante onchange. Esta es una decisión explícita de transición a textos estándar, no una equivalencia exacta del related legado.
 
-## Datos existentes reportados previamente en staging Odoo 14
+El legado mostraba city/colonia a través de related no almacenados. Si las columnas guardadas y el texto efectivo del related ya difieren, el port prioriza los textos almacenados: el comparador de snapshots debe señalar la diferencia y bloquear aceptación hasta una decisión documentada. No se intenta resolverla sobrescribiendo masivamente los datos. Si l10n_mx_edi u otro addon redefine estos campos, debe comprobarse su definición final en el registry Enterprise; no se modificó código propietario.
 
-- Ciudades: 645
-- Municipios: 3,060
-- Colonias: 138,035
-- Contactos con `colonia_id`: 1,236
-- Contactos con `municipio_id`: 1,270
-- Contactos con `ciudad_id`: 1,234
+## Scripts de actualización preparados, no ejecutados en Odoo
 
-Estos conteos son referencias de una revisión previa del staging, no una verificación ejecutada en esta sesión. La exportación previa de contactos contenía sólo `id` y cuatro campos de dirección, no era un respaldo integral de contactos.
+- migrations/18.0.2.1.0/pre-migrate.py: valida tablas/columnas originales y referencias no huérfanas. Un esquema inesperado, CP ausente o referencias rotas bloquean el ensayo; nunca se corrigen borrando ni recreando registros.
+- post-migrate.py: rellena city y l10n_mx_edi_colony **sólo si son SQL NULL** y existe el registro relacionado. Conserva textos no nulos, cadenas vacías, IDs y relaciones. No importa CSV, no elimina registros y no altera tablas. Su lógica pasó tres pruebas con fixtures sintéticos SQLite en memoria; no es validación PostgreSQL/Odoo.
+- El ORM podrá materializar la columna fiscal al actualizar: declarar un campo almacenado también puede generar DDL. Este cambio de esquema está preparado en código, no se ha aplicado a ninguna base real.
+- El salto 14→18 requiere el servicio/proceso oficial de Upgrade. Estos scripts de addon no reemplazan la migración del core.
 
-## Diseño seguro recomendado
+## Comprobación de conservación
 
-- Mantener un único propietario técnico de los modelos; no instalar `direccion_mx_gmp` en paralelo al módulo original.
-- Antes de cambiar el nombre técnico, definir un plan de transición de módulo (renombrado/migración de metadatos) probado en una copia restaurable. La opción de menor riesgo es conservar el nombre técnico `direccion_mx` para la versión portada, si la arquitectura del repositorio y Odoo.sh lo permiten.
-- Mantener los nombres de modelos y tablas existentes: `res_country_state_ciudad`, `res_country_state_municipio`, `res_country_state_municipio_colonia`; comprobar también la tabla del modelo CP.
-- Comparar tipos, nullability, defaults, índices, secuencias, constraints, claves foráneas y conteos antes/después.
-- Preservar IDs de ciudad/municipio/colonia y todas las referencias desde `res_partner`.
-- Resolver explícitamente el diseño de `city`, `l10n_mx_edi_colony`, `zip`, `state_id` y `country_id`.
-- Agregar vistas y permisos mínimos sólo después de validar el esquema y las APIs Odoo 18.
-- Prohibido ejecutar wizard de importación, truncar tablas, recrear registros o aplicar SQL manual sobre producción.
+`tools/address_integrity.py` ofrece snapshot(env) en lectura ORM y comparación offline. Incluye los cuatro catálogos y todos los partners, también archivados y proveedores si supplier_rank existe. Lee por lotes y conserva hashes por ID de nombres, textos y relaciones, además de los nombres de tablas y cobertura de campos; no exporta nombres de personas en claro. Las lecturas deben ejecutarse en una copia autorizada, con una transacción de lectura consistente y sin cambios concurrentes. No se ejecutaron aquí sobre Odoo.
 
-## Validaciones pendientes para cerrar
+Capturar antes del Upgrade, bajo el registro 14, y después bajo 18. Guardar fuera de Git y comparar:
 
-1. Obtener del staging: estado instalado de `direccion_mx` y `direccion_mx_gmp`, módulos dependientes, campos/vistas que referencian `ciudad_id`, `municipio_id`, `colonia_id`, `city` y `l10n_mx_edi_colony`.
-2. Comparar el esquema real con las definiciones originales y portadas, incluidas las claves foráneas.
-3. Diseñar transición de metadatos del módulo con un script de migración Odoo 18 revisado y probado en copia.
-4. Ejecutar pruebas de alta/edición de contactos, proveedores y clientes; seleccionar colonia por nombre y CP; verificar que ciudad/municipio/estado/país y CP quedan consistentes.
-5. Comparar conteos, IDs y relaciones después de actualización.
+```text
+python tools/address_integrity.py <antes.json> <despues.json>
+```
 
-## Estado
+El comparador falla ante modelos faltantes, campos incompletos, cambio de tabla, IDs agregados/eliminados o hashes distintos. Revisar también FKs, tipos/nullability/defaults/índices/secuencias, XML IDs/noupdate y propiedad de ir.model/ir.model.fields. Las comprobaciones de snapshots no sustituyen esa auditoría de esquema/metadatos. Incluso nuevos partners legítimos del core producen una diferencia que debe revisarse; no existe una excepción automática que oculte pérdidas.
 
-**NO APTO PARA INSTALACIÓN NI PARA PRUEBA UPGRADE.** El esqueleto GMP es un punto de partida, no un port completo. No ejecutar su instalación en la base de staging actual hasta resolver el conflicto potencial de modelos/metadatos y preparar migración de esquema.
+La conservación se acepta sólo con snapshots reales comparables, logs sin limpieza imprevista y esquema verificado. No es posible garantizarla sobre una BD no inspeccionada; las salvaguardas implementadas evitan declarar éxito sólo por conteos.
+
+## Contingencia temporal implementada
+
+```text
+python tools/build_address_bridge.py <archivo_nuevo.zip>
+```
+
+Genera una variante del **mismo direccion_mx** con los cuatro modelos/campos y sus tablas. Conserva manifiesto, vistas, ACL y scripts para no retirar metadatos XML por quitar archivos de data. Elimina únicamente métodos personalizados de los modelos. No conecta a BD y rechaza sobrescribir el archivo de salida.
+
+Se pierde temporalmente: búsqueda de colonia por CP, onchanges, autocompletado por API, validación de coherencia y extensión de sincronización de direcciones con hijos. Los selectores quedan manuales; no usar este paquete para operación real. No se retiran los modelos, no se desinstala el módulo, no se instala GMP y no se cambia ningún ID. Mantener un solo ejemplar en addons_path.
+
+Recuperación: restaurar el addon completo 18.0.2.1.0 en la misma ruta, reiniciar y ensayar la actualización únicamente en copia desechable; volver a comparar snapshots. El puente no remedia un esquema corrupto ni evita la prevalidación; ante un fallo hay que inspeccionar/restaurar otra copia. Tres pruebas de empaquetado verifican declaraciones idénticas y ausencia de sobrescritura. No hay prueba de instalación del puente en Odoo.
+
+## Pruebas y límites
+
+20 casos ORM de direcciones preparados: siete búsquedas originales y 13 nuevos para CP, campos, textos, API, contactos/proveedores archivados, relaciones/IDs, lotes, conflictos, hijos y ACL. No ejecutados por ausencia de Odoo. Comparador, empaquetado y backfill tienen 12 pruebas Python locales aprobadas en total. Evidencia completa en TEST_REPORT.md.
+
+Conteos históricos: 645 ciudades, 3,060 municipios y 138,035 colonias; no medidos aquí. No se tocó producción, main/master ni bases reales. Fuentes y commits originales en SOURCE_REVIEW.md. **NO APTO para Upgrade funcional hasta probar conservación en una copia Odoo 18 y la sincronización POS obligatoria.**
