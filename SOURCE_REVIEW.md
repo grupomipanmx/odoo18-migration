@@ -92,3 +92,11 @@ Se registran referencias y hashes, sin redistribuir los fuentes. Softhealer/ASPL
 
 Los hashes identifican la fuente, no acreditan instalación ni equivalencia funcional Enterprise. Las consultas web a documentación ORM/JavaScript fallaron por timeout/acceso; se utilizó el código oficial de Odoo. La URL errónea `models/res_partner.py` del legado devolvió 404; el archivo correcto es `models/partner.py`.
 
+
+## Seguimiento POS y direcciones
+
+Se volvió a comparar el modelo CP y los related del legado en e3aed4a499c3617644d47afa87b716dc48f0277d. Para el port de cantidades se consultaron en Odoo 18 commit 54c0991d2949bf4090231c8c167b4a1038769085: pos_store.js (pay), payment_screen.js (validateOrder), models/pos_order.py (_process_saved_order/action_pos_order_paid), models/pos_load_mixin.py y views/pos_config_view.xml. El loader vacío significa todos los campos. Se confirmó que el core captura excepciones no SQL alrededor de action_pos_order_paid: por eso el guardia se sitúa fuera de ese try.
+
+Se consultó res_partner.py del mismo commit: _address_fields controla la sincronización con hijos; el port incluye los vínculos y texto fiscal. No se portó el override legacy de vistas. La plantilla oficial OrderReceipt ya muestra customerNote; eso no demuestra que las notas históricas note estén migradas.
+
+La ficha oficial sh_pos_order_list 18 estuvo disponible mediante búsqueda; la consulta directa de sh_pos_order_sync 18 recibió 429. La tienda de Softhealer confirma el producto, no el paquete instalado. Enlaces en SUPPLIER_REQUESTS.md. No se descargó código propietario.

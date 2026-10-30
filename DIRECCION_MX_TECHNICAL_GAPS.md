@@ -1,54 +1,59 @@
-# Direcciones mexicanas: propuesta técnica y riesgos
+# Direcciones mexicanas — implementación y conservación
 
-Fecha: 2026-10-30. **Plan presentado; ningún cambio de esquema ni operación de BD ejecutado. NO APTO para instalar/actualizar sobre base poblada.**
+Fecha: 2026-10-30. Versión implementada: **18.0.2.1.0**. Código publicado en codex/odoo18-compatibility. **No instalado ni actualizado en Odoo; conservación de datos reales todavía no demostrada.**
 
-## Comparación confirmada
+## Brechas corregidas en código
 
-| Elemento | Legado direccion_mx | GMP histórico | Port actual |
-|---|---|---|---|
-| Identidad | direccion_mx | direccion_mx_gmp | direccion_mx |
-| Dependencias | base_address_city, l10n_mx_edi, contacts | base, contacts | base, contacts |
-| Modelos catálogos | Ciudad/municipio/colonia y CP | Los cuatro | Sólo los primeros tres; CP falta |
-| Tablas principales | Nombres derivados originales | Nombres explícitos conservados | Nombres explícitos conservados |
-| Interfaz/ACL | Vistas/wizards; init_xml antiguo | Sin data | ACL + vistas cargadas |
-| city | Related a ciudad_id.name | Asignación onchange | Asignación onchange; puede divergir por RPC/import |
-| l10n_mx_edi_colony | Related a colonia_id.name | Ausente | Related readonly, store no declarado |
-| Búsqueda colonia | name_search + name_get | name_search + name_get | _name_search inefectivo en 18; corregido al dominio display_name |
-
-Las brechas del GMP sin vistas/ACL son históricas, no describen el port actual. Recuperar un archivo de modelo no resuelve por sí solo la transición de metadatos ni el esquema.
-
-## Estrategia de conservación
-
-1. **Inventario en lectura desde copia autorizada 14.** Confirmar ir.module.module y dependientes; verificar si GMP se instaló alguna vez. Obtener definiciones de modelos/campos, módulos propietarios de metadatos y todos los XML IDs/vistas/acciones/reglas. No instalar ambos ni desinstalar el legado para resolver conflictos.
-2. **Respaldo integral y referencia.** Base completa + filestore, versión de código y addons; restauración comprobada. Registrar conteos reales, IDs ordenados y huellas por fila de cada catálogo, más referencias de todos los contactos (activos/archivados, clientes/proveedores, hijos, empresas). La exportación parcial de contactos no basta.
-3. **Esquema antes de tocarlo.** Comparar tipos, longitudes, nullability, defaults, índices, constraints, FKs, secuencias, propietarios de ir.model e ir.model.fields. Incluir res_country_state_cp. El port declara índices nuevos; incluso un update ORM puede crear DDL automáticamente, por eso no se ejecuta todavía.
-4. **Un único dueño técnico.** Preferir actualizar direccion_mx manteniendo nombres de modelos, tablas e IDs. Comparar cada XML ID legado con los nuevos IDs: mantener o mapear explícitamente sin dejar que la limpieza de datos obsoletos borre registros. Revisar noupdate y propiedad de los registros importados. Si GMP llegó a instalarse, preparar un plan específico de metadatos; no asumir renombrado automático.
-5. **Resolver CP y campos de contacto antes del update.** El modelo CP original existe y el port lo omite: no permitir que la limpieza del ORM lo retire sin decidir conservación. Su tabla y registros deben mantenerse. Preservar ciudad_id, municipio_id y colonia_id con los mismos IDs; definir city y l10n_mx_edi_colony según evidencia de almacenamiento real y consumidores.
-6. **Ensayo futuro aislado.** Sólo después de revisar este plan, generar scripts versionados contra un esquema conocido y ejecutarlos en una copia desechable migrada, con logs completos. No se incluye ahora ningún script DDL ni hook de importación.
-7. **Comparación posterior y reversión.** Comparar conjuntos de IDs y hashes de filas, no sólo conteos. Verificar cada FK desde res_partner y CP, inexistencia de huérfanos y duplicados nuevos, y secuencias por encima de max(id). Ante cualquier diferencia inesperada, rechazar el ensayo y restaurar otra copia del respaldo; no reparar borrando/recreando tablas ni reimportando CSV.
-
-## Campo fiscal y city
-
-Mantener el campo l10n_mx_edi_colony cuando exista o tenga consumidores, aunque CFDI esté fuera del alcance. Un related no almacenado no garantiza conservar el texto histórico ni la columna original; su cálculo puede ocultar diferencias. Comparar valores guardados y datos relacionados en copia antes de decidir store/related. Si l10n_mx_edi sigue instalado, revisar su definición Enterprise y posibles redefiniciones; no instalarlo sólo para resolver catálogos.
-
-El cambio de city related a campo ordinario modifica el comportamiento en create/write/import y al renombrar ciudades. Definir si debe seguir al catálogo o admitir texto libre antes de modificarlo. No sobrescribir direcciones internacionales ni referencias existentes por inferencias automáticas.
-
-## Riesgos y pruebas obligatorias
-
-| Riesgo | Comprobación requerida |
+| Elemento | Implementación |
 |---|---|
-| Pérdida por limpieza de modelos/XML IDs | CP y catálogo con mismos IDs/filas/metadatos; revisar logs de unlink/DDL |
-| Duplicación | Un solo módulo propietario; mismas claves y huellas; cero importaciones CSV |
-| Relaciones rotas | Comparación completa de contacto→ciudad/municipio/colonia y CP→catálogos |
-| Permisos más amplios | Probar internos lectura, administradores según política; ACL aditivas y reglas antiguas |
-| Direcciones inconsistentes | Ciudad/municipio/colonia por nombre y CP con ceros; cambios de país/estado; borrado de selección; APIs/imports, hijos y archivados |
-| Texto fiscal/city alterado | Comparación de valores originales, definición store/related y consumidores de vistas/reportes |
-| Vistas incompatibles | Validar formulario combinado, dominios, contactos hijos y compañías en Odoo 18 Enterprise |
+| CP | Modelo res.country.state.cp y tabla explícita res_country_state_cp. name Char tamaño 128, state_id, ciudad_id y municipio_id opcionales, mismos destinos que legado. Sin importación, índices nuevos, restricciones nuevas ni recreación de tabla |
+| city | Char almacenado/editable estándar, sin related/compute/inverse. Compatible con texto libre y contactos sin catálogos mexicanos |
+| l10n_mx_edi_colony | Char almacenado/editable con el mismo nombre, sin dependencia CFDI. No se descarta texto fiscal original |
+| Alta/edición por API | create multi y write completan únicamente valores omitidos al seleccionar explícitamente ciudad/municipio/colonia. El texto explícito, incluso vacío, prevalece |
+| Coherencia | Nuevas selecciones contradictorias producen ValidationError antes de reemplazar relaciones. No se normalizan masivamente contactos históricos |
+| Contactos hijos | _address_fields incorpora relaciones y colonia fiscal para que el mecanismo estándar sincronice dirección y vínculos juntos |
+| Seguridad CP | Internos lectura; sistema CRUD, igual a otros catálogos. ACL aditivas: comprobar permisos heredados en la copia real |
+| Búsqueda | Se conserva la corrección _search_display_name de la entrega anterior |
 
-Conteos históricos reportados: 645 ciudades, 3,060 municipios, 138,035 colonias; contactos con colonia 1,236, municipio 1,270, ciudad 1,234. **No medidos en esta sesión; no son criterios suficientes por sí solos.**
+Un cambio de teléfono o de otro dato ajeno a los selectores no reescribe las direcciones. Limpiar todos los selectores conserva el texto guardado; renombrar un catálogo tampoco reescribe las etiquetas históricas de los contactos. Elegir una nueva colonia por formulario sí actualiza las etiquetas mediante onchange. Esta es una decisión explícita de transición a textos estándar, no una equivalencia exacta del related legado.
 
-## Cambio implementado ahora
+El legado mostraba city/colonia a través de related no almacenados. Si las columnas guardadas y el texto efectivo del related ya difieren, el port prioriza los textos almacenados: el comparador de snapshots debe señalar la diferencia y bloquear aceptación hasta una decisión documentada. No se intenta resolverla sobrescribiendo masivamente los datos. Si l10n_mx_edi u otro addon redefine estos campos, debe comprobarse su definición final en el registry Enterprise; no se modificó código propietario.
 
-Únicamente el dominio de búsqueda de colonias en código LGPL-3 del repositorio. `_search_display_name` permite CP/nombre numérico y operadores negativos correctos; delega nombres normales al core. No cambia la base, esquema, IDs, vistas ni campos. Siete pruebas preparadas; resultados y límites en TEST_REPORT.md.
+## Scripts de actualización preparados, no ejecutados en Odoo
 
-Fuentes exactas y commits: [SOURCE_REVIEW.md](SOURCE_REVIEW.md). Recursos indispensables: esquema/metadatos de copia 14, snapshot de datos y runtime Enterprise 18 desechable. No se necesita reimportar ni entregar los CSV para resolver estas brechas.
+- migrations/18.0.2.1.0/pre-migrate.py: valida tablas/columnas originales y referencias no huérfanas. Un esquema inesperado, CP ausente o referencias rotas bloquean el ensayo; nunca se corrigen borrando ni recreando registros.
+- post-migrate.py: rellena city y l10n_mx_edi_colony **sólo si son SQL NULL** y existe el registro relacionado. Conserva textos no nulos, cadenas vacías, IDs y relaciones. No importa CSV, no elimina registros y no altera tablas. Su lógica pasó tres pruebas con fixtures sintéticos SQLite en memoria; no es validación PostgreSQL/Odoo.
+- El ORM podrá materializar la columna fiscal al actualizar: declarar un campo almacenado también puede generar DDL. Este cambio de esquema está preparado en código, no se ha aplicado a ninguna base real.
+- El salto 14→18 requiere el servicio/proceso oficial de Upgrade. Estos scripts de addon no reemplazan la migración del core.
+
+## Comprobación de conservación
+
+`tools/address_integrity.py` ofrece snapshot(env) en lectura ORM y comparación offline. Incluye los cuatro catálogos y todos los partners, también archivados y proveedores si supplier_rank existe. Lee por lotes y conserva hashes por ID de nombres, textos y relaciones, además de los nombres de tablas y cobertura de campos; no exporta nombres de personas en claro. Las lecturas deben ejecutarse en una copia autorizada, con una transacción de lectura consistente y sin cambios concurrentes. No se ejecutaron aquí sobre Odoo.
+
+Capturar antes del Upgrade, bajo el registro 14, y después bajo 18. Guardar fuera de Git y comparar:
+
+```text
+python tools/address_integrity.py <antes.json> <despues.json>
+```
+
+El comparador falla ante modelos faltantes, campos incompletos, cambio de tabla, IDs agregados/eliminados o hashes distintos. Revisar también FKs, tipos/nullability/defaults/índices/secuencias, XML IDs/noupdate y propiedad de ir.model/ir.model.fields. Las comprobaciones de snapshots no sustituyen esa auditoría de esquema/metadatos. Incluso nuevos partners legítimos del core producen una diferencia que debe revisarse; no existe una excepción automática que oculte pérdidas.
+
+La conservación se acepta sólo con snapshots reales comparables, logs sin limpieza imprevista y esquema verificado. No es posible garantizarla sobre una BD no inspeccionada; las salvaguardas implementadas evitan declarar éxito sólo por conteos.
+
+## Contingencia temporal implementada
+
+```text
+python tools/build_address_bridge.py <archivo_nuevo.zip>
+```
+
+Genera una variante del **mismo direccion_mx** con los cuatro modelos/campos y sus tablas. Conserva manifiesto, vistas, ACL y scripts para no retirar metadatos XML por quitar archivos de data. Elimina únicamente métodos personalizados de los modelos. No conecta a BD y rechaza sobrescribir el archivo de salida.
+
+Se pierde temporalmente: búsqueda de colonia por CP, onchanges, autocompletado por API, validación de coherencia y extensión de sincronización de direcciones con hijos. Los selectores quedan manuales; no usar este paquete para operación real. No se retiran los modelos, no se desinstala el módulo, no se instala GMP y no se cambia ningún ID. Mantener un solo ejemplar en addons_path.
+
+Recuperación: restaurar el addon completo 18.0.2.1.0 en la misma ruta, reiniciar y ensayar la actualización únicamente en copia desechable; volver a comparar snapshots. El puente no remedia un esquema corrupto ni evita la prevalidación; ante un fallo hay que inspeccionar/restaurar otra copia. Tres pruebas de empaquetado verifican declaraciones idénticas y ausencia de sobrescritura. No hay prueba de instalación del puente en Odoo.
+
+## Pruebas y límites
+
+20 casos ORM de direcciones preparados: siete búsquedas originales y 13 nuevos para CP, campos, textos, API, contactos/proveedores archivados, relaciones/IDs, lotes, conflictos, hijos y ACL. No ejecutados por ausencia de Odoo. Comparador, empaquetado y backfill tienen 12 pruebas Python locales aprobadas en total. Evidencia completa en TEST_REPORT.md.
+
+Conteos históricos: 645 ciudades, 3,060 municipios y 138,035 colonias; no medidos aquí. No se tocó producción, main/master ni bases reales. Fuentes y commits originales en SOURCE_REVIEW.md. **NO APTO para Upgrade funcional hasta probar conservación en una copia Odoo 18 y la sincronización POS obligatoria.**

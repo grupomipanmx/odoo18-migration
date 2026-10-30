@@ -34,10 +34,16 @@ Guardar versión/commit de todos los addons, comando exacto sin credenciales, sa
 
 ## Criterios para levantar NO APTO
 
-Instalación y actualización sin errores en destino aislado; siete pruebas de búsqueda ejecutadas; verificación de permisos/vistas; mismos IDs, filas y relaciones de direcciones; funciones POS aceptadas; conciliación inventario/contabilidad sin diferencias injustificadas; errores TestCrawler y AccessError resueltos con trazabilidad. La producción requiere una aprobación posterior independiente.
+Instalación y actualización sin errores en destino aislado; 24 pruebas ORM ejecutadas; verificación de permisos/vistas; mismos IDs, filas y relaciones de direcciones; funciones POS aceptadas; conciliación inventario/contabilidad sin diferencias injustificadas; errores TestCrawler y AccessError resueltos con trazabilidad. La producción requiere una aprobación posterior independiente.
 
 ## Acceso ofrecido durante esta sesión
 
 El usuario compartió la URL https://www.odoo.sh/project/grupomipan y confirmó haber iniciado sesión. El inventario de ventanas mostró Chrome en «Odoo.sh - grupomipan - Branches». Al intentar observar la página, el control del navegador se detuvo porque no pudo verificar con suficiente confianza la URL activa de Chrome. No se consultaron builds ni logs, ni se ejecutaron cambios en SH. El acceso autenticado y la revisión del staging quedan pendientes de verificación por una herramienta operativa.
 
 No se guardaron credenciales, capturas ni claves SSH en el repositorio. La clave pública por sí sola no proporciona autenticación SSH; no se solicitó clave privada. La guía de control de Windows exige que los diálogos de autenticación los complete el usuario.
+
+## Seguimiento implementado: POS primero
+
+Ver POS_FIRST_UPGRADE.md. El usuario no acepta cajas sin sincronización. Los paquetes comerciales 18 son requisito, no se retiran para obtener una carga aparente. Agregar pos_require_product_quantity al ensayo desechable y ejecutar tests de ambos addons; su flag es configurable y no se activa masivamente. Los scripts pre/post de direccion_mx están preparados y aún no se han ejecutado en Odoo; generar/cotejar snapshots antes y después. No guardar snapshots ni copias de datos reales en Git.
+
+El puente generado por tools/build_address_bridge.py sólo sustituye temporalmente el código del mismo direccion_mx en una copia aislada. No desinstala modelos ni importa catálogos. Es una herramienta de ensayo, no una autorización de despliegue o una garantía de instalación.

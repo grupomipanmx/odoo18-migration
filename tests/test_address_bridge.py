@@ -33,3 +33,7 @@ class TestAddressBridge(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 build(output)
             self.assertEqual(output.read_bytes(), b"keep this file")
+
+    def test_output_inside_addon_source_is_rejected(self):
+        with self.assertRaises(ValueError):
+            build(ROOT / "direccion_mx" / "not-created.zip")

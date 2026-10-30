@@ -17,9 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def build(output):
     output = Path(output)
+    source_root = ROOT / "direccion_mx"
+    if source_root.resolve() in output.resolve().parents:
+        raise ValueError("Write the bridge outside the addon source directory")
     # Exclusive creation: never overwrite an existing package or source file.
     with zipfile.ZipFile(output, mode="x", compression=zipfile.ZIP_DEFLATED) as archive:
-        source_root = ROOT / "direccion_mx"
         for source in sorted(source_root.rglob("*")):
             relative = source.relative_to(source_root)
             if not source.is_file() or "__pycache__" in relative.parts or "tests" in relative.parts:

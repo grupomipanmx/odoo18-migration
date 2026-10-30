@@ -1,6 +1,6 @@
 # Revisión funcional POS — 2026-10-30
 
-Estado: revisión estática y propuesta de aceptación. **No ejecutado en Odoo 18.** Fuentes y commits: SOURCE_REVIEW.md. Los módulos propietarios se describen desde antecedentes; no se copiaron ni modificaron sus fuentes.
+Estado: revisión estática, port libre de cantidades implementado y propuesta de aceptación. El usuario confirmó sincronización indispensable desde el primer día; cajas independientes NO son alternativa aceptada. **No ejecutado en Odoo 18.** Fuentes y commits: SOURCE_REVIEW.md. Los módulos propietarios se describen desde antecedentes; no se copiaron ni modificaron sus fuentes.
 
 ## Matriz de funciones e integraciones
 
@@ -18,7 +18,7 @@ Estado: revisión estática y propuesta de aceptación. **No ejecutado en Odoo 1
 
 ## Assets y APIs
 
-Históricos revisados usan imports point_of_sale.Registries, PosModel, ReceiptScreen/ProductScreen/TicketScreen y herencia XML point_of_sale.assets. El manifiesto oficial 18 usa `point_of_sale._assets_pos`; requiere módulos/imports y componentes de la versión destino, carga de datos POS, servicios y contratos de recibo actuales. No basta con cambiar el número de versión o reemplazar cadenas. No se agregaron assets POS al repositorio actual, que sólo contiene direccion_mx.
+Históricos revisados usan imports point_of_sale.Registries, PosModel, ReceiptScreen/ProductScreen/TicketScreen y herencia XML point_of_sale.assets. El manifiesto oficial 18 usa `point_of_sale._assets_pos`; requiere módulos/imports y componentes de la versión destino, carga de datos POS, servicios y contratos de recibo actuales. No basta con cambiar el número de versión o reemplazar cadenas. Se agregó pos_require_product_quantity con dos assets en point_of_sale._assets_pos; se eliminaron de este port los hooks/assets legacy. No se modificó código Softhealer/ASPL.
 
 ## Matriz de aceptación futura
 
@@ -47,3 +47,9 @@ Versiones exactas y preguntas en [SUPPLIER_REQUESTS.md](SUPPLIER_REQUESTS.md). N
 ## Dictamen
 
 **NO APTO para prueba de Upgrade.** Compatibilidad de assets, integridad de sincronización, controles de permisos y aceptación de caja todavía sin pruebas reales.
+
+## Implementación de cantidades 18
+
+El módulo conserva el nombre técnico y el campo pos.config.require_product_quantity. Respeta el flag (False predeterminado como el original), captura el buffer antes de comprobar y bloquea antes de llamar super.pay/validateOrder. El guardia servidor se ejecuta antes del try/except de _process_saved_order del core para no convertir un fallo de validación en un pedido con movimiento de stock. Constraints adicionales cubren state/lines y cambios directos de qty en pedidos finalizados. Borradores pueden contener cero para seguir editándose/sincronizándose; ventas fraccionarias y devoluciones negativas son válidas. No sustituye el motor de sincronización.
+
+11 tests JavaScript con lógica real y dobles explícitos de servicios/base classes pasan en Node; no acreditan OWL, bundle real ni navegador. Cuatro pruebas ORM se prepararon pero no cargan sin Odoo. Historial, impresión, eliminación, cliente/notas y sincronización no están certificados ni se retiraron automáticamente. Ruta y pérdidas temporales en POS_FIRST_UPGRADE.md.

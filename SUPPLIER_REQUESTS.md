@@ -21,3 +21,9 @@ Texto preparado:
 ## Entregables necesarios del proveedor
 
 Paquetes 18 oficiales con versiones identificables; condiciones de licencia y autorización de uso; dependencias compatibles; instrucciones de actualización de datos; limitaciones conocidas; soporte para ensayo y errores. No desarrollar un sustituto copiando su implementación. No instalar dos motores de sincronización sin diseño validado.
+
+## Prioridad actual: sincronización obligatoria
+
+El usuario confirmó que NO se puede operar sin sincronización desde el primer día. Se necesitan los paquetes oficiales Odoo 18 sh_pos_order_sync y su dependencia sh_pos_order_list, licencia de uso y guía de migración de configuraciones/pedidos. No se acepta desinstalarlos como forma de desbloquear. Si el motor activo es ASPL, solicitar el paquete 18 correspondiente antes de escoger; no activar ambos.
+
+La ficha oficial [sh_pos_order_list 18](https://apps.odoo.com/apps/modules/18.0/sh_pos_order_list) muestra la serie 18 y el proveedor declara soporte Enterprise/Odoo.sh. La [tienda Softhealer](https://store.softhealer.com/shop/point-of-sale-order-sync-774) ofrece el producto de sincronización; las fichas de otras series enumeran 18. Esto no verifica el paquete exacto ni su licencia para esta instalación. La consulta directa a sh_pos_order_sync 18 devolvió HTTP 429: versión/parche exacto sigue por confirmar. No se compró ni descargó software comercial ni se envió comunicación.

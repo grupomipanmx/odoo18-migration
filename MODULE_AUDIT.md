@@ -1,3 +1,5 @@
+> Actualización de implementación: ahora hay dos addons. direccion_mx 18.0.2.1.0 recupera CP y define textos almacenados; pos_require_product_quantity 18.0.1.0.0 aporta el port de cantidades. Hay 8 ACL de direcciones y 3 XML en total. La cobertura inicial de 15 archivos que sigue es histórica; consultar TEST_REPORT.md para conteos actuales.
+
 # Auditoría de módulos — Odoo 14 → 18
 
 Fecha: 2026-10-30. Evidencia actual y hashes: [SOURCE_REVIEW.md](SOURCE_REVIEW.md). Los antecedentes del ZIP no sustituyen la lectura actual ni prueban el estado instalado en staging.
@@ -13,13 +15,13 @@ Se revisaron sus 15 archivos originales: 7 Markdown y los 8 archivos del módulo
 | ZIP_REVIEW_2026-10-30.md, STATIC_CHECKS_2026-10-30.md | Conservados con aviso de antecedentes; ZIP no disponible localmente |
 | direccion_mx/__manifest__.py | LGPL-3 declarada, 18.0.2.0.0, depende de base/contacts; carga ACL y dos vistas; sin CSV ni hooks. installable=True no prueba instalación |
 | direccion_mx/__init__.py, models/__init__.py | Cadena de imports presente; modelos se importan; sin efectos externos fuera del registro ORM |
-| models/address_catalog.py | Tres modelos con tablas explícitas; índices requerirán comparar esquema. CP legado ausente. `_name_search` no es extensión efectiva en 18: corregido a `_search_display_name` |
-| models/res_partner.py | Relaciones existentes y related fiscal no almacenado; city actualizado sólo por onchange. Imports/create/write no ejecutan esos onchanges: brecha funcional pendiente. Cambio de país/estado y limpieza de CP deben especificarse |
+| models/address_catalog.py | Cuatro modelos con tablas explícitas; CP recuperado con los cuatro campos originales, sin índices/requisitos nuevos. Índices anteriores requieren comparar esquema. `_name_search` no es extensión efectiva en 18: corregido a `_search_display_name` |
+| models/res_partner.py | Relaciones existentes conservadas; city/colonia fiscal ahora almacenados, con valores explícitos prioritarios. create/write completan selecciones explícitas; edición ajena a direcciones no reescribe vínculos. Cambio de país/estado y limpieza de CP deben especificarse |
 | views/address_catalog_views.xml | list/form y view_mode list,form usan sintaxis 18; menús para group_system. Edición/eliminación permitidas a administradores por ACL; revisar necesidad antes de uso |
 | views/res_partner_views.xml | Hereda base.view_partner_form, inserta tras zip. Ref existe en core 18; xpath amplio en formulario con direcciones anidadas: probar vista combinada y readonly de contactos hijos. Ciudad sin dominio por estado; municipio sólo filtrado por estado |
-| security/ir.model.access.csv | Seis ACL: internos lectura; sistema CRUD. No filas públicas. ACL son aditivas: reglas/ACL heredadas podrían ampliar permisos, no verificables sin BD |
+| security/ir.model.access.csv | Ocho ACL: internos lectura; sistema CRUD, incluido CP. No filas públicas. ACL son aditivas: reglas/ACL heredadas podrían ampliar permisos, no verificables sin BD |
 
-No se alteraron declaraciones de campos ni vistas por falta de comparación del esquema poblado. No hay hooks nuevos ni archivos de migración ejecutables que operen sobre datos.
+El seguimiento añade CP, redefine almacenamiento de textos y prepara migrations/18.0.2.1.0/pre-migrate.py y post-migrate.py; no se ejecutaron contra Odoo. No hay hooks de importación. El pre bloquea esquema inesperado/huérfanos; post rellena sólo NULL. Falta demostrar registry y conservación en PostgreSQL real.
 
 ## Históricos y submódulos
 
@@ -35,7 +37,7 @@ Se accedió autenticadamente a `jeffrepo/grupomipan`, rama `odoo18-migration`, y
 | sh_pos_order_list | OPL-1 según reporte histórico | Pedir paquete Odoo 18. No copiar, modificar ni redistribuir |
 | sh_pos_order_sync | OPL-1, depende de sh_pos_order_list según reporte | Pedir ambos paquetes 18 y migración coordinada; concurrencia/reconexión pendientes |
 | aspl_pos_order_sync_ee | Gitlink comercial 2800fe5; restricción según histórico | Pedir versión Enterprise 18; confirmar si se usa junto a Softhealer. No duplicar motores de sincronización |
-| pos_require_product_quantity | AGPL-3, fuentes del gitlink consultados | `_onClickPay` legacy llama super antes de validar; flag require_product_quantity no se consulta en JS. Reubicar validación antes del pago, reglas backend y devoluciones |
+| pos_require_product_quantity | AGPL-3, fuentes del gitlink consultados | `_onClickPay` legacy llama super antes de validar; flag require_product_quantity no se consulta en JS. Implementado port 18: PosStore.pay/PaymentScreen.validateOrder antes de super, guardia servidor y restricción al finalizar; 4 tests ORM pendientes y 11 JS locales aprobados |
 | pos_receipt_client | LGPL-3, QWeb del gitlink consultado | Añade cliente Y nota por línea. props.order.orderlines.find(...).note sin guardia; qweb/estructura recibo legacy. Depende de pos_restaurant |
 | pos_loyalty_fields | Sin licencia expresa en manifiesto; vistas consultadas | Grupos sobre loyalty_points y ClientDetailsEdit legacy. No asumir equivalencia con lealtad 18 ni reinstalar |
 | stock_account_purchase | Cabeceras AGPL-3; modelos y vista consultados | Omite asientos por proveedor; retorna False donde 18 consume lista; falta dependencia explícita purchase_stock. Ver STOCK_ACCOUNT_REVIEW |
