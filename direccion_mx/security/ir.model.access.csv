@@ -5,3 +5,5 @@ access_colonia_user,colonia user,model_res_country_state_municipio_colonia,base.
 access_ciudad_admin,ciudad admin,model_res_country_state_ciudad,base.group_system,1,1,1,1
 access_municipio_admin,municipio admin,model_res_country_state_municipio,base.group_system,1,1,1,1
 access_colonia_admin,colonia admin,model_res_country_state_municipio_colonia,base.group_system,1,1,1,1
+access_cp_user,cp user,model_res_country_state_cp,base.group_user,1,0,0,0
+access_cp_admin,cp admin,model_res_country_state_cp,base.group_system,1,1,1,1

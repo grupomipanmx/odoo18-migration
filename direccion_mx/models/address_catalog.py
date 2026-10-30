@@ -4,6 +4,19 @@ from odoo import api, fields, models
 from odoo.osv import expression
 
 
+class CodigoPostal(models.Model):
+    _name = "res.country.state.cp"
+    _table = "res_country_state_cp"
+    _description = "Código postal de México"
+
+    # Keep the legacy columns, size, optionality and relation targets. No data
+    # loader or replacement table: an upgrade must reuse the existing records.
+    name = fields.Char(string="Código postal", size=128)
+    state_id = fields.Many2one("res.country.state", string="Estado")
+    ciudad_id = fields.Many2one("res.country.state.ciudad", string="Localidad")
+    municipio_id = fields.Many2one("res.country.state.municipio", string="Municipio")
+
+
 class Ciudad(models.Model):
     _name = "res.country.state.ciudad"
     _table = "res_country_state_ciudad"

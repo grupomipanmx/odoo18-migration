@@ -36,6 +36,11 @@ def main():
                 errors.append(f"{module.name}: missing data file {item}")
             if Path(item).suffix == ".csv" and not item.startswith("security/"):
                 errors.append(f"{module.name}: catalog CSV declared: {item}")
+        for bundle, entries in manifest.get("assets", {}).items():
+            for item in entries:
+                if isinstance(item, str) and item.startswith(module.name + "/"):
+                    if not list(ROOT.glob(item)):
+                        errors.append(f"{module.name}: missing asset {bundle}: {item}")
         models = set()
         for source in (module / "models").glob("*.py"):
             for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
