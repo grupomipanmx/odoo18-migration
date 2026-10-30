@@ -49,7 +49,7 @@ class Colonia(models.Model):
         domain = list(domain or [])
         if name:
             term = name.strip()
-            if re.fullmatch(r"\\d{4,5}", term):
+            if re.fullmatch(r"\d{4,5}", term):
                 domain = ["|", ("cp", operator, term), ("name", operator, term)] + domain
             else:
                 domain = [("name", operator, term)] + domain
