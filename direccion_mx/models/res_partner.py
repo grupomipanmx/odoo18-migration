@@ -75,9 +75,20 @@ class ResPartner(models.Model):
     def write(self, vals):
         if not {"ciudad_id", "municipio_id", "colonia_id"}.intersection(vals):
             return super().write(vals)
-        plans = [(partner, self._prepare_catalog_address_values(vals, partner=partner)) for partner in self]
-        for partner, prepared in plans:
-            super(ResPartner, partner).write(prepared)
+        # Prepare each record first because existing free-text values may differ.
+        # Then batch records with identical values so ORM recomputations, tracking,
+        # constraints and inherited write overrides retain normal recordset behavior.
+        groups = []
+        for partner in self:
+            prepared = self._prepare_catalog_address_values(vals, partner=partner)
+            for group in groups:
+                if group[0] == prepared:
+                    group[1] |= partner
+                    break
+            else:
+                groups.append([prepared, partner])
+        for prepared, partners in groups:
+            super(ResPartner, partners).write(prepared)
         return True
 
     @api.onchange("ciudad_id")
