@@ -1,6 +1,7 @@
 import re
 
 from odoo import api, fields, models
+from odoo.osv import expression
 
 
 class Ciudad(models.Model):
@@ -45,13 +46,15 @@ class Colonia(models.Model):
     clave_sat = fields.Char(string="Clave SAT")
 
     @api.model
-    def _name_search(self, name, domain=None, operator="ilike", limit=100, order=None):
-        domain = list(domain or [])
-        if name:
-            term = name.strip()
-            if re.fullmatch(r"\d{4,5}", term):
-                domain = ["|", ("cp", operator, term), ("name", operator, term)] + domain
-            else:
-                domain = [("name", operator, term)] + domain
-        records = self.search(domain, limit=limit, order=order)
-        return [(rec.id, rec.display_name) for rec in records]
+    def _search_display_name(self, operator, value):
+        # Odoo 18 name_search searches display_name; _name_search is no longer
+        # its extension point. Return a domain so caller filters and rules apply.
+        if isinstance(value, str) and re.fullmatch(r"\d{4,5}", value.strip()):
+            term = value.strip()
+            combine = (
+                expression.AND
+                if operator in expression.NEGATIVE_TERM_OPERATORS
+                else expression.OR
+            )
+            return combine([[("cp", operator, term)], [("name", operator, term)]])
+        return super()._search_display_name(operator, value)
