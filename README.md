@@ -29,3 +29,4 @@ Conteos reportados en staging Odoo 14: 645 ciudades, 3,060 municipios y 138,035 
 Estado actual: **NO LISTO PARA REPETIR UPGRADE**. El ZIP fue inspeccionado y los hallazgos están documentados. No se ha modificado producción.
 
 - [Brechas técnicas de direccion_mx](DIRECCION_MX_TECHNICAL_GAPS.md)
+- [Comprobaciones estáticas del ZIP](STATIC_CHECKS_2026-10-30.md)
