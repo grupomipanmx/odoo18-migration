@@ -30,3 +30,4 @@ Estado actual: **NO LISTO PARA REPETIR UPGRADE**. El ZIP fue inspeccionado y los
 
 - [Brechas técnicas de direccion_mx](DIRECCION_MX_TECHNICAL_GAPS.md)
 - [Comprobaciones estáticas del ZIP](STATIC_CHECKS_2026-10-30.md)
+- [Revisión funcional de extensiones POS](POS_FUNCTIONAL_REVIEW.md)
