@@ -46,3 +46,31 @@ Para revisar código de cada módulo se necesita que su carpeta fuente esté dis
 3. Las funciones POS, compras, inventario y contabilidad general se prueban con escenarios reales.
 4. Los catálogos de dirección conservan conteos, IDs y relaciones; no se ejecuta una importación duplicada.
 5. La prueba se realiza únicamente en `upgrade`; `master` permanece intacta hasta aprobación expresa.
+
+
+## Hallazgos adicionales al inspeccionar fuentes POS originales
+Se inspeccionaron fuentes disponibles en el repositorio histórico `jeffrepo/grupomipan`, rama `odoo18-migration`:
+
+### `disable_trash_pos_order`
+- El módulo modifica el POS frontend con la API legacy `odoo.define`, `point_of_sale.Registries` y `TicketScreen`.
+- La lógica oculta el botón de borrar para cajeros y para pedidos con pagos electrónicos completados.
+- Su XML hereda `point_of_sale.assets`, patrón de assets antiguo.
+- Conclusión: no es compatible para copiar directamente a Odoo 18. Si el negocio requiere impedir borrado de pedidos, hay que rediseñar el control con el framework POS de Odoo 18 y probar permisos/roles. No reinstalar el módulo 14.
+
+### `pos_hide_today_orders`
+- Implementa una regla de registros sobre `pos.order` para ocultar pedidos del día a un grupo.
+- Sobrescribe `ir.rule._eval_context`, lo que puede afectar el contexto de evaluación de otras reglas, no sólo la regla del POS.
+- Usa `user.login_date.now(...)` y el módulo de seguridad tiene un dominio de fecha que requiere revisión.
+- Conclusión: no portar tal cual. Confirmar qué usuarios pertenecen al grupo y qué problema operativo resuelve; si sigue requerido, sustituirlo por una regla limitada al caso POS sin reemplazar globalmente el contexto de `ir.rule`.
+
+### `pos_print_group` (presente en el código histórico; no figura en la lista previa de módulos desinstalados)
+- Añade un grupo de seguridad para permitir imprimir tickets.
+- Extiende `pos.config` con `group_print_id` y modifica `ReceiptScreen`/cajero mediante APIs legacy del POS.
+- El manifest depende de `point_of_sale` y carga assets por `point_of_sale.assets`.
+- Conclusión: requiere confirmar si estaba instalado y si el bloqueo de impresión por grupo sigue siendo requisito. Si se conserva, reimplementar con los assets/componentes de POS de Odoo 18. No se debe asumir que está desinstalado.
+
+## Limitación de esta auditoría
+Los módulos `pos_require_product_quantity`, `pos_receipt_client`, `pos_loyalty_fields`, `stock_account_purchase`, `web_m2x_options` y `mass_editing` aparecen como submódulos Git (gitlinks) en el repositorio histórico. Sus fuentes no están disponibles como archivos normales en el árbol principal inspeccionado; se requiere acceder a cada repositorio de submódulo o recibir un ZIP/exportación para revisar el código completo. Los módulos de factura global también son submódulos y permanecen fuera del alcance funcional acordado.
+
+## Estado de preparación
+**NO LISTO PARA REPETIR UPGRADE.** Faltan fuentes y validaciones técnicas de los módulos indicados, además de terminar la validación de `direccion_mx`. Esta marca evita confundir una auditoría parcial con una aprobación de migración.
