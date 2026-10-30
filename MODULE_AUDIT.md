@@ -1,76 +1,56 @@
-# Auditoría de módulos — Migración Odoo 14 a Odoo 18
+# Auditoría de módulos — Odoo 14 → 18
 
-Fecha de revisión: 2026-10-30  
-Repositorio de trabajo: grupomipanmx/odoo18-migration  
-Entorno de validación: rama Odoo.sh `upgrade`  
-Producción `master`: no modificar.
+Fecha: 2026-10-30. Evidencia actual y hashes: [SOURCE_REVIEW.md](SOURCE_REVIEW.md). Los antecedentes del ZIP no sustituyen la lectura actual ni prueban el estado instalado en staging.
 
-## Alcance acordado
-- Mantener ventas, Punto de Venta, compras, inventario y contabilidad general.
-- Recursos Humanos queda fuera del alcance.
-- CFDI, facturación electrónica mexicana y módulos de factura global quedan fuera del alcance.
-- Conservar los catálogos de direcciones de México y sus relaciones con contactos.
-- No desinstalar módulos adicionales ni ejecutar cambios destructivos sin validar dependencias y datos.
+## Cobertura del repositorio de migración
 
-## Estado según el historial de pruebas y cambios reportados
+Se revisaron sus 15 archivos originales: 7 Markdown y los 8 archivos del módulo. No contiene JavaScript, assets, scripts de migración, gitlinks, `.gitmodules`, configuración de servidor ni módulos Enterprise. Los tests y herramienta de esta entrega se revisaron después de agregarlos.
 
-| Módulo técnico | Estado conocido | Acción para Odoo 18 | Observaciones |
-|---|---|---|---|
-| `direccion_mx` | Instalado en Odoo 14; se acordó conservarlo | PORTAR Y VALIDAR | Mantener modelos, tablas, IDs y relaciones existentes. No instalar una segunda copia en paralelo ni reimportar CSV. |
-| `mass_editing` | Desinstalado en staging | VALIDAR NECESIDAD | No reinstalar sin confirmar si existe una alternativa estándar o si se usa en procesos actuales. |
-| `web_m2x_options` | Desinstalado en staging | VALIDAR VISTAS/DEPENDENCIAS | Revisar vistas personalizadas que usaran sus opciones antes de decidir sustitución. |
-| `disable_trash_pos_order` | Desinstalado en staging | REVISAR POS | Confirmar si el bloqueo de eliminación de pedidos es un control operativo requerido y reemplazarlo si aplica. |
-| `pos_hide_today_orders` | Desinstalado en staging | REVISAR POS | Confirmar si ocultar pedidos del día era parte del flujo de caja. |
-| `pos_require_product_quantity` | Desinstalado en staging | REVISAR POS | Confirmar si se requiere impedir líneas de producto con cantidad no capturada/cero. |
-| `pos_receipt_client` | Desinstalado en staging | REVISAR POS | Confirmar si el ticket requiere mostrar datos adicionales del cliente. |
-| `pos_loyalty_fields` | Desinstalado en staging | REVISAR POS/LEALTAD | Se reportó que se conserva `pos_loyalty`; comprobar que no haya campos/vistas dependientes del módulo retirado. |
-| `stock_account_purchase` | Desinstalado en staging | REVISAR INVENTARIO/CONTABILIDAD | Se reportó que `res.partner.disable_move` no tenía registros activos; comprobar el flujo contable de compras y valoración antes de darlo por sustituido. |
-| `factura_global` | Estado final no confirmado | FUERA DE ALCANCE | No migrar ni reinstalar en esta fase; confirmar que no bloquee la carga de módulos dentro del alcance. |
-| `factura_global_complemento` | Estado final no confirmado | FUERA DE ALCANCE | Relacionado con factura global/CFDI. |
-| `validar_facturas` | Estado final no confirmado | FUERA DE ALCANCE | Relacionado con validaciones de facturación. |
+| Archivo/grupo | Hallazgo y decisión |
+|---|---|
+| README.md, MIGRATION_STATUS.md, MODULE_AUDIT.md | Mezclaban estado histórico y actual; actualizados con evidencia y bloqueos |
+| POS_FUNCTIONAL_REVIEW.md, DIRECCION_MX_TECHNICAL_GAPS.md | Actualizados con fuentes históricas accesibles y brechas vigentes |
+| ZIP_REVIEW_2026-10-30.md, STATIC_CHECKS_2026-10-30.md | Conservados con aviso de antecedentes; ZIP no disponible localmente |
+| direccion_mx/__manifest__.py | LGPL-3 declarada, 18.0.2.0.0, depende de base/contacts; carga ACL y dos vistas; sin CSV ni hooks. installable=True no prueba instalación |
+| direccion_mx/__init__.py, models/__init__.py | Cadena de imports presente; modelos se importan; sin efectos externos fuera del registro ORM |
+| models/address_catalog.py | Tres modelos con tablas explícitas; índices requerirán comparar esquema. CP legado ausente. `_name_search` no es extensión efectiva en 18: corregido a `_search_display_name` |
+| models/res_partner.py | Relaciones existentes y related fiscal no almacenado; city actualizado sólo por onchange. Imports/create/write no ejecutan esos onchanges: brecha funcional pendiente. Cambio de país/estado y limpieza de CP deben especificarse |
+| views/address_catalog_views.xml | list/form y view_mode list,form usan sintaxis 18; menús para group_system. Edición/eliminación permitidas a administradores por ACL; revisar necesidad antes de uso |
+| views/res_partner_views.xml | Hereda base.view_partner_form, inserta tras zip. Ref existe en core 18; xpath amplio en formulario con direcciones anidadas: probar vista combinada y readonly de contactos hijos. Ciudad sin dominio por estado; municipio sólo filtrado por estado |
+| security/ir.model.access.csv | Seis ACL: internos lectura; sistema CRUD. No filas públicas. ACL son aditivas: reglas/ACL heredadas podrían ampliar permisos, no verificables sin BD |
 
-## Errores detectados en el intento anterior
-- Módulos reportados como inconsistentes: `direccion_mx`, `disable_trash_pos_order`, `factura_global`, `factura_global_complemento`, `mass_editing`, `pos_hide_today_orders`, `pos_loyalty_fields`, `pos_receipt_client`, `pos_require_product_quantity`, `stock_account_purchase`, `validar_facturas`, `web_m2x_options`.
-- Se reportaron errores de vistas XML (incluyendo indentación inesperada) y fallos del TestCrawler en el tablero de contabilidad (`account.menu_board_journal_1`).
-- También se reportó un AccessError relacionado con `account.bank.statement.last_statement_id.balance_end_real`; requiere analizar el traceback completo y el módulo responsable antes de corregir.
-- Los errores HR se excluyen conforme al alcance acordado.
+No se alteraron declaraciones de campos ni vistas por falta de comparación del esquema poblado. No hay hooks nuevos ni archivos de migración ejecutables que operen sobre datos.
 
-## Pendiente para cerrar la auditoría de código
-El repositorio de migración contiene actualmente el port inicial de `direccion_mx`, pero no contiene los fuentes de los otros módulos personalizados retirados ni los módulos de facturación. Por eso, su clasificación anterior se basa en el historial de la prueba y en los nombres/funciones reportados, no en una inspección línea por línea de sus fuentes.
+## Históricos y submódulos
 
-Para revisar código de cada módulo se necesita que su carpeta fuente esté disponible en este repositorio o en un archivo exportado. No se debe asumir que el nombre del módulo describe todas sus personalizaciones.
+Se accedió autenticadamente a `jeffrepo/grupomipan`, rama `odoo18-migration`, y su `.gitmodules`. Los 12 gitlinks se registran con commit en SOURCE_REVIEW. No se usó `submodule update --recursive`, para evitar copiar código propietario. Se consultaron por separado repositorios de las dependencias permitidas.
 
-## Criterios de aceptación antes de repetir Upgrade
-1. Cada módulo dentro del alcance tiene versión Odoo 18 compatible o una sustitución funcional aprobada.
-2. No quedan dependencias de módulos retirados en vistas, acciones, reglas, campos, datos XML ni manifiestos.
-3. Las funciones POS, compras, inventario y contabilidad general se prueban con escenarios reales.
-4. Los catálogos de dirección conservan conteos, IDs y relaciones; no se ejecuta una importación duplicada.
-5. La prueba se realiza únicamente en `upgrade`; `master` permanece intacta hasta aprobación expresa.
+| Módulo | Evidencia/licencia | Resultado para 18 |
+|---|---|---|
+| direccion_mx | Legado e3aed4a; manifiesto sin licencia explícita; sólo consultado | base_address_city/l10n_mx_edi/contacts; name_get y manipulación antigua de vistas. No copiar/importar catálogos |
+| direccion_mx_gmp | Fuentes históricos consultados; LGPL-3 declarada | data vacío, sin ACL/vistas, name_get legado, CP presente; no instalar junto al original |
+| disable_trash_pos_order | JS y XML consultados; sin licencia expresa en manifiesto | Registries.Component.extend/TicketScreen y assets legacy; puede fallar si order.employee no existe. Sólo oculta botón; no control backend |
+| pos_hide_today_orders | LGPL-3, reglas y override consultados | Reemplaza globalmente ir.rule._eval_context; no reproducir. Fecha basada en user.login_date.now/timezone, sin zona por defecto. Regla también aplica a unlink |
+| pos_print_group | AGPL-3, fuentes consultados | PosModel/get_cashier, ReceiptScreen y point_of_sale.assets legacy; depende de empleado/cajero y grupos cargados. Necesita adaptación y prueba de impresión automática/reimpresión |
+| sh_pos_order_list | OPL-1 según reporte histórico | Pedir paquete Odoo 18. No copiar, modificar ni redistribuir |
+| sh_pos_order_sync | OPL-1, depende de sh_pos_order_list según reporte | Pedir ambos paquetes 18 y migración coordinada; concurrencia/reconexión pendientes |
+| aspl_pos_order_sync_ee | Gitlink comercial 2800fe5; restricción según histórico | Pedir versión Enterprise 18; confirmar si se usa junto a Softhealer. No duplicar motores de sincronización |
+| pos_require_product_quantity | AGPL-3, fuentes del gitlink consultados | `_onClickPay` legacy llama super antes de validar; flag require_product_quantity no se consulta en JS. Reubicar validación antes del pago, reglas backend y devoluciones |
+| pos_receipt_client | LGPL-3, QWeb del gitlink consultado | Añade cliente Y nota por línea. props.order.orderlines.find(...).note sin guardia; qweb/estructura recibo legacy. Depende de pos_restaurant |
+| pos_loyalty_fields | Sin licencia expresa en manifiesto; vistas consultadas | Grupos sobre loyalty_points y ClientDetailsEdit legacy. No asumir equivalencia con lealtad 18 ni reinstalar |
+| stock_account_purchase | Cabeceras AGPL-3; modelos y vista consultados | Omite asientos por proveedor; retorna False donde 18 consume lista; falta dependencia explícita purchase_stock. Ver STOCK_ACCOUNT_REVIEW |
+| mass_editing | AGPL-3; manifiesto y revisión estática dirigida de fuentes | fields_view_get, attrs/tree, creación dinámica, ir.translation y sudo requieren port. Migraciones 14 contienen ALTER/UPDATE/DELETE; NO ejecutar. Tests remotos existentes, no ejecutados |
+| web_m2x_options | AGPL-3; manifiesto y revisión estática dirigida de fuentes | web.relational_fields, Dialog/data/rpc, include/extend legacy y qweb; sustituir por paquete compatible si necesario. Tests remotos no ejecutados |
+| factura_global, factura_global_complemento, validar_facturas, l10n_mx_edi_cancel | Gitlinks inventariados | Fuera de alcance funcional; falta verificar dependencias instaladas y metadatos en BD. No reinstalar/desinstalar automáticamente |
 
+## APIs y dependencias
 
-## Hallazgos adicionales al inspeccionar fuentes POS originales
-Se inspeccionaron fuentes disponibles en el repositorio histórico `jeffrepo/grupomipan`, rama `odoo18-migration`:
+- Odoo 18 `name_search` busca display_name y combina args; la extensión local usa `_search_display_name`. Para CP numérico combina nombre/CP por OR; operadores negativos requieren AND. No usa sudo ni SQL. El dominio del llamador y las reglas los aplica el ORM.
+- En POS se observaron referencias concretas a Registries, PosModel, pantallas importadas por nombres antiguos y herencia de point_of_sale.assets. Odoo 18 declara `point_of_sale._assets_pos`; es necesario adaptar imports/componentes/servicios/payloads. `odoo.define` por sí solo no demuestra toda incompatibilidad.
+- `name_get`, `fields_view_get`, manifiestos `qweb`/`init_xml`, `attrs`, `tree` y dominios devueltos por onchange requieren revisión en cada fuente legacy; no se aplicó una sustitución textual indiscriminada.
+- base/contacts existen en core; contacts depende de base/mail, por lo que tracking tiene dependencia transitiva. Se verificaron los XML IDs de formulario partner y menú contacts en fuente oficial. La resolución en el registry real y dependencias Enterprise sigue pendiente.
+- No se ha comprobado que las desinstalaciones reportadas eliminen referencias en vistas Studio, acciones, reglas o datos. Tampoco se han reproducido los errores TestCrawler/AccessError.
 
-### `disable_trash_pos_order`
-- El módulo modifica el POS frontend con la API legacy `odoo.define`, `point_of_sale.Registries` y `TicketScreen`.
-- La lógica oculta el botón de borrar para cajeros y para pedidos con pagos electrónicos completados.
-- Su XML hereda `point_of_sale.assets`, patrón de assets antiguo.
-- Conclusión: no es compatible para copiar directamente a Odoo 18. Si el negocio requiere impedir borrado de pedidos, hay que rediseñar el control con el framework POS de Odoo 18 y probar permisos/roles. No reinstalar el módulo 14.
+## Criterio de cierre
 
-### `pos_hide_today_orders`
-- Implementa una regla de registros sobre `pos.order` para ocultar pedidos del día a un grupo.
-- Sobrescribe `ir.rule._eval_context`, lo que puede afectar el contexto de evaluación de otras reglas, no sólo la regla del POS.
-- Usa `user.login_date.now(...)` y el módulo de seguridad tiene un dominio de fecha que requiere revisión.
-- Conclusión: no portar tal cual. Confirmar qué usuarios pertenecen al grupo y qué problema operativo resuelve; si sigue requerido, sustituirlo por una regla limitada al caso POS sin reemplazar globalmente el contexto de `ir.rule`.
-
-### `pos_print_group` (presente en el código histórico; no figura en la lista previa de módulos desinstalados)
-- Añade un grupo de seguridad para permitir imprimir tickets.
-- Extiende `pos.config` con `group_print_id` y modifica `ReceiptScreen`/cajero mediante APIs legacy del POS.
-- El manifest depende de `point_of_sale` y carga assets por `point_of_sale.assets`.
-- Conclusión: requiere confirmar si estaba instalado y si el bloqueo de impresión por grupo sigue siendo requisito. Si se conserva, reimplementar con los assets/componentes de POS de Odoo 18. No se debe asumir que está desinstalado.
-
-## Limitación de esta auditoría
-Los módulos `pos_require_product_quantity`, `pos_receipt_client`, `pos_loyalty_fields`, `stock_account_purchase`, `web_m2x_options` y `mass_editing` aparecen como submódulos Git (gitlinks) en el repositorio histórico. Sus fuentes no están disponibles como archivos normales en el árbol principal inspeccionado; se requiere acceder a cada repositorio de submódulo o recibir un ZIP/exportación para revisar el código completo. Los módulos de factura global también son submódulos y permanecen fuera del alcance funcional acordado.
-
-## Estado de preparación
-**NO LISTO PARA REPETIR UPGRADE.** Faltan fuentes y validaciones técnicas de los módulos indicados, además de terminar la validación de `direccion_mx`. Esta marca evita confundir una auditoría parcial con una aprobación de migración.
+Sólo puede recomendarse Upgrade tras comparar datos/metadatos y completar instalación, actualización y pruebas funcionales Enterprise. La auditoría de código disponible está documentada; la auditoría de la BD y los módulos comerciales permanece pendiente. **NO APTO.**

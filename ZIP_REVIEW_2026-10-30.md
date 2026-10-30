@@ -1,3 +1,5 @@
+> Antecedente heredado del repositorio. No se repitieron las pruebas del ZIP en esta sesión; consultar [TEST_REPORT.md](TEST_REPORT.md) y [SOURCE_REVIEW.md](SOURCE_REVIEW.md) para evidencia actual.
+
 # Revisión del ZIP de migración Odoo 18
 
 Fecha: 2026-10-30  

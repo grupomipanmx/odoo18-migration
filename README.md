@@ -1,33 +1,37 @@
-# Grupo Mi Pan — Migración a Odoo 18
+# Grupo Mi Pan — Migración Odoo 14 → Odoo 18 Enterprise
 
-Repositorio exclusivo para preparar y validar la migración de Odoo 14 a Odoo 18.
+**Dictamen al 2026-10-30: NO APTO para prueba de Upgrade.** Se preparó una corrección de compatibilidad; no hay evidencia de instalación, actualización ni aceptación funcional en Odoo 18 Enterprise.
 
-## Seguridad
-- Trabajar únicamente en staging o copias restaurables.
-- No modificar producción ni desplegar sin aceptación.
-- No ejecutar SQL destructivo, ni desinstalar módulos sin plan validado.
-- No reimportar los CSV de direcciones: las tablas ya contienen registros.
-- CFDI/facturación queda fuera del alcance; contabilidad general permanece.
+Rama de trabajo: `codex/odoo18-compatibility`, desde `main` commit `318677df86c611d16bf54c0c59869a5c1a901934`. No se modifican `main`, `master`, producción ni bases de datos. No hay despliegue autorizado como parte de esta entrega.
 
-## Direcciones de México
-Se portará el módulo conservando el nombre técnico `direccion_mx`, los modelos y las tablas existentes para evitar duplicar datos. No instalar un segundo módulo que registre esos mismos modelos en paralelo.
+## Alcance
 
-Conteos reportados en staging Odoo 14: 645 ciudades, 3,060 municipios y 138,035 colonias. La exportación de contactos contiene sólo IDs y campos de dirección; no es un respaldo integral de contactos.
+Ventas, POS, compras, inventario, contabilidad general y catálogos mexicanos. HR, CFDI, factura global y validaciones fiscales quedan fuera del alcance funcional; sus dependencias técnicas deben resolverse sin desinstalaciones automáticas.
 
-## Flujo
-1. Inventario de módulos y dependencias.
-2. Portado de módulos propios a Odoo 18.
-3. Pruebas en copia de staging.
-4. Validación funcional y de datos.
-5. Despliegue sólo con aprobación.
+## Entrega actual
 
+- Auditoría de todos los archivos del repositorio y revisión autenticada de fuentes históricas y submódulos: [MODULE_AUDIT.md](MODULE_AUDIT.md), [SOURCE_REVIEW.md](SOURCE_REVIEW.md).
+- Corrección en `direccion_mx`: búsqueda por nombre/CP mediante `_search_display_name` de Odoo 18. Se preservan filtros del llamador, reglas de registros y semántica de operadores negativos. Sin cambios en declaraciones de campos, tablas o manifiesto.
+- Siete pruebas Odoo de regresión preparadas, pendientes de ejecución con un servidor real.
+- [Plan de conservación de direcciones](DIRECCION_MX_TECHNICAL_GAPS.md), [revisión POS](POS_FUNCTIONAL_REVIEW.md), [inventario y contabilidad](STOCK_ACCOUNT_REVIEW.md).
+- [Resultados reales](TEST_REPORT.md), [requisitos de entorno](STAGING_RUNBOOK.md), [versiones a solicitar al proveedor](SUPPLIER_REQUESTS.md), [estado y decisiones](MIGRATION_STATUS.md).
 
-## Auditoría y avances
-- [Revisión del ZIP y hallazgos técnicos (2026-10-30)](ZIP_REVIEW_2026-10-30.md)
-- [Auditoría general de módulos](MODULE_AUDIT.md)
+## Verificación local reproducible
 
-Estado actual: **NO LISTO PARA REPETIR UPGRADE**. El ZIP fue inspeccionado y los hallazgos están documentados. No se ha modificado producción.
+```powershell
+python tools/check_repository.py
+python -m compileall -q direccion_mx tools
+git diff --check
+```
 
-- [Brechas técnicas de direccion_mx](DIRECCION_MX_TECHNICAL_GAPS.md)
-- [Comprobaciones estáticas del ZIP](STATIC_CHECKS_2026-10-30.md)
-- [Revisión funcional de extensiones POS](POS_FUNCTIONAL_REVIEW.md)
+Estas comprobaciones no importan el ORM ni validan instalación. El entorno local tiene Python 3.15.0 y carece de Odoo, psycopg2, lxml y ejecutables PostgreSQL/Docker detectables. No se ha preparado un runtime Odoo compatible.
+
+## Preservación de datos
+
+Usar un solo módulo técnico `direccion_mx`. No instalar `direccion_mx_gmp` en paralelo, reimportar CSV, desinstalar el legado, ejecutar wizards antiguos o eliminar/recrear tablas. Los conteos históricos (645 ciudades, 3,060 municipios, 138,035 colonias) no fueron medidos en esta sesión.
+
+**No ejecutar instalación/actualización sobre la base poblada hasta revisar el plan de esquema y sus riesgos.** Que el manifiesto existente declare `installable=True` no equivale a aprobación técnica.
+
+## Antecedentes
+
+[ZIP_REVIEW_2026-10-30.md](ZIP_REVIEW_2026-10-30.md) y [STATIC_CHECKS_2026-10-30.md](STATIC_CHECKS_2026-10-30.md) son reportes heredados. Sus resultados no se presentan como pruebas repetidas en esta sesión. El contexto adjunto del usuario confirma intentos fallidos 18/19 y prioriza exclusivamente Odoo 18. La captura recibida muestra el staging `upgrade` en 14.0; no demuestra un build Odoo 18 funcional.
