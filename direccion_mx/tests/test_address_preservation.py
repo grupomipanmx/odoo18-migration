@@ -114,6 +114,16 @@ class TestAddressPreservation(TransactionCase):
         self.assertEqual(partners.ids, before)
         self.assertTrue(all(p.city == self.city.name and p.colonia_id == self.colony for p in partners))
 
+    def test_batch_write_preserves_each_partners_explicit_city_text(self):
+        partners = self.env["res.partner"].create([
+            {"name": "Uno", "city": "Ciudad histórica uno"},
+            {"name": "Dos", "city": "Ciudad histórica dos"},
+        ])
+        partners.write({"colonia_id": self.colony.id})
+        self.assertEqual(partners[0].city, "Ciudad histórica uno")
+        self.assertEqual(partners[1].city, "Ciudad histórica dos")
+        self.assertTrue(all(partner.colonia_id == self.colony for partner in partners))
+
     def test_conflicting_catalog_links_are_rejected_without_replacing_ids(self):
         partner = self.partner(colonia_id=self.colony.id)
         other = self.env["res.country.state.municipio"].create({"name": "Otro", "state_id": self.state.id})
