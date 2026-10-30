@@ -20,3 +20,10 @@ Conteos reportados en staging Odoo 14: 645 ciudades, 3,060 municipios y 138,035 
 3. Pruebas en copia de staging.
 4. Validación funcional y de datos.
 5. Despliegue sólo con aprobación.
+
+
+## Auditoría y avances
+- [Revisión del ZIP y hallazgos técnicos (2026-10-30)](ZIP_REVIEW_2026-10-30.md)
+- [Auditoría general de módulos](MODULE_AUDIT.md)
+
+Estado actual: **NO LISTO PARA REPETIR UPGRADE**. El ZIP fue inspeccionado y los hallazgos están documentados. No se ha modificado producción.
